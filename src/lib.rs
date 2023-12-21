@@ -10,8 +10,7 @@ pub fn all_files_in_dir<P: AsRef<std::path::Path>>(path: P) -> Result<Vec<std::p
   let mut paths = vec![];
   for entry in WalkDir::new(path)
   {
-    let entry = entry?;
-    paths.push(entry.into_path());
+    paths.push(entry?.into_path());
   }
 
   Ok(paths)
