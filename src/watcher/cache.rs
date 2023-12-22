@@ -25,6 +25,7 @@ impl Cache
   pub fn add(&mut self, path: PathBuf) -> Result
   {
     self.files.push(path);
+    let _ = self.sender.send(());
     Ok(())
   }
 
@@ -33,3 +34,6 @@ impl Cache
     self.files.iter()
   }
 }
+
+#[cfg(test)]
+mod test;
