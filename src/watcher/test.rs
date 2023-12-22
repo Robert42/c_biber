@@ -5,6 +5,7 @@ fn find_all_c_files()
 {
   assert_eq!(create_and_find_files([]).unwrap(), vec![] as Vec<&str>);
   assert_eq!(create_and_find_files(["a.c"]).unwrap(), vec!["a.c"]);
+  assert_eq!(create_and_find_files(["a.c", "b.c", "c.rs"]).unwrap(), vec!["a.c", "b.c"]);
 }
 
 fn create_files<'a, Files>(files: Files) -> Result<TempDir>
@@ -29,7 +30,7 @@ where
 {
   let tmp_dir = create_files(files)?;
 
-  let mut watcher = Watcher::new(tmp_dir.path(), |_| Some(true));
+  let mut watcher = Watcher::new(tmp_dir.path(), |p| Some(p.extension()?=="c"));
   watcher.scan()?;
 
   Ok(watcher.cache.into_iter().map(|x| format!("{}", diff_paths(x, &watcher.path).unwrap().display())).collect())
@@ -40,5 +41,7 @@ where
   Files: IntoIterator<Item=&'a str>
 {
   let nothing = "".as_bytes();
-  collect_cache(files.into_iter().map(|f| (f, nothing)))
+  let mut files = collect_cache(files.into_iter().map(|f| (f, nothing)))?;
+  files.sort();
+  Ok(files)
 }
