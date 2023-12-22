@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Cache
 {
-  files: Vec<Arc<Path>>,
+  files: HashMap<Arc<Path>, Vec<u8>>,
   sender: mpsc::Sender<Event>,
 }
 
@@ -19,7 +19,7 @@ impl Cache
     let (sender, receiver) = mpsc::channel();
 
     let cache = Cache{
-      files: vec![],
+      files: HashMap::with_capacity(4096),
       sender
     };
 
@@ -30,15 +30,24 @@ impl Cache
   {
     let path = path.as_ref();
     let path : Arc<Path> = Arc::from(path);
-    if self.files.contains(&path) {return Ok(())}
-    self.files.push(path.clone());
-    let _ = self.sender.send(Event::ADD(path, content));
+    if let Some(old_content) = self.files.get(&path)
+    {
+      if old_content != &content
+      {
+        let _ = self.sender.send(Event::ADD(path, content));
+      }
+    }
+    else
+    {
+      self.files.insert(path.clone(), content.clone());
+      let _ = self.sender.send(Event::ADD(path, content));
+    }
     Ok(())
   }
 
   pub fn iter(&self) -> impl Iterator<Item=&Arc<Path>>
   {
-    self.files.iter()
+    self.files.keys()
   }
 }
 
