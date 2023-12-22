@@ -6,7 +6,7 @@ pub struct Cache
   sender: mpsc::Sender<Event>,
 }
 
-pub type Event = ();
+pub type Event = Arc<Path>;
 
 impl Cache
 {
@@ -24,8 +24,9 @@ impl Cache
 
   pub fn add<P: AsRef<Path>>(&mut self, path: P) -> Result
   {
-    self.files.push(Arc::from(path.as_ref()));
-    let _ = self.sender.send(());
+    let path : Arc<Path> = Arc::from(path.as_ref());
+    self.files.push(path.clone());
+    let _ = self.sender.send(path);
     Ok(())
   }
 

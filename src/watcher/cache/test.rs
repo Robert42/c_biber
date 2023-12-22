@@ -9,5 +9,5 @@ fn test_receive_updates()
 
   cache.add(Path::new("a")).unwrap();
 
-  assert_eq!(receiver.try_recv(), Ok(()));
+  assert_eq!(receiver.try_recv(), Ok(Arc::from(Path::new("a"))));
 }
