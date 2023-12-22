@@ -1,20 +1,10 @@
 #![allow(non_camel_case_types)]
 
+pub mod watcher;
+pub use watcher::Watcher;
+
 extern crate walkdir;
 #[macro_use] extern crate thiserror;
-
-pub fn all_files_in_dir<P: AsRef<std::path::Path>>(path: P) -> Result<Vec<std::path::PathBuf>, Error>
-{
-  use crate::walkdir::WalkDir;
-  
-  let mut paths = vec![];
-  for entry in WalkDir::new(path)
-  {
-    paths.push(entry?.into_path());
-  }
-
-  Ok(paths)
-}
 
 pub type Result<T=(), E=Error> = std::result::Result<T, E>;
 

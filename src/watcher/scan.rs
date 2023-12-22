@@ -1,0 +1,21 @@
+use super::*;
+
+impl<F> Watcher<F>
+where
+  F: Fn(&std::path::Path)->Option<bool>
+{
+  pub fn scan(&mut self) -> Result
+  {
+    for entry in WalkDir::new(&self.path)
+    {
+      let path = entry?.into_path();
+      if !(self.filter)(path.as_path()).unwrap_or(false) {continue}
+
+      println!("{}", path.display());
+    }
+  
+    Ok(())
+  }
+}
+
+use crate::walkdir::WalkDir;
