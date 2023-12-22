@@ -26,10 +26,11 @@ impl<F> Watcher<F>
 {
   pub fn new<P: AsRef<Path>>(path: P, file_filter: F) -> Self
   {
+    let (cache, ()) = Cache::new();
     Watcher{
       filter: file_filter,
       path: path.as_ref().to_owned(),
-      cache: Cache::default(),
+      cache,
     }
   }
 }

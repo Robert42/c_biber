@@ -1,6 +1,5 @@
 use super::*;
 
-#[derive(Default)]
 pub struct Cache
 {
   files: Vec<PathBuf>,
@@ -8,6 +7,15 @@ pub struct Cache
 
 impl Cache
 {
+  pub fn new() -> (Self, ())
+  {
+    let cache = Cache{
+      files: vec![],
+    };
+
+    (cache, ())
+  }
+
   pub fn add(&mut self, path: PathBuf) -> Result
   {
     self.files.push(path);
