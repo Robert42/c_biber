@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Cache
 {
-  files: HashMap<Arc<Path>, Vec<u8>>,
+  files: HashMap<Arc<Path>, blake3::Hash>,
   sender: mpsc::Sender<Event>,
 }
 
@@ -29,18 +29,20 @@ impl Cache
 
   pub fn add<P: AsRef<Path>>(&mut self, path: P, content: Vec<u8>) -> Result
   {
+    let new_hash = blake3::hash(content.as_slice());
+
     let path = path.as_ref();
     let path : Arc<Path> = Arc::from(path);
-    if let Some(old_content) = self.files.get(&path)
+    if let Some(old_hash) = self.files.get(&path).copied()
     {
-      if old_content != &content
+      if old_hash != new_hash
       {
         let _ = self.sender.send(Event::MODIFIED(path, content));
       }
     }
     else
     {
-      self.files.insert(path.clone(), content.clone());
+      self.files.insert(path.clone(), new_hash);
       let _ = self.sender.send(Event::ADD(path, content));
     }
     Ok(())
