@@ -3,6 +3,9 @@
 pub mod watcher;
 pub use watcher::Watcher;
 
+mod dev_prelude;
+use dev_prelude::*;
+
 extern crate walkdir;
 #[macro_use] extern crate thiserror;
 

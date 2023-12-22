@@ -5,14 +5,14 @@ pub mod scan;
 pub struct Watcher<F>
 {
   filter: F,
-  path: std::path::PathBuf,
+  path: PathBuf,
 }
 
 impl<F> Watcher<F>
   where
-    F: Fn(&std::path::Path)->Option<bool>
+    F: Fn(&Path)->Option<bool>
 {
-  pub fn new<P: AsRef<std::path::Path>>(path: P, file_filter: F) -> Self
+  pub fn new<P: AsRef<Path>>(path: P, file_filter: F) -> Self
   {
     Watcher{
       filter: file_filter,

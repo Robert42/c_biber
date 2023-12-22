@@ -2,7 +2,7 @@ use super::*;
 
 impl<F> Watcher<F>
 where
-  F: Fn(&std::path::Path)->Option<bool>
+  F: Fn(&Path)->Option<bool>
 {
   pub fn scan(&mut self) -> Result
   {
