@@ -1,5 +1,5 @@
 pub use std::path::{Path, PathBuf};
-pub use std::sync::mpsc;
+pub use std::sync::{Arc, mpsc};
 #[cfg(test)] pub use std::fs;
 
 #[cfg(test)] pub use crate::tempdir::TempDir;

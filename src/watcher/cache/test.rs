@@ -7,7 +7,7 @@ fn test_receive_updates()
 
   assert!(receiver.try_recv().is_err());
 
-  cache.add(Path::new("a").into()).unwrap();
+  cache.add(Path::new("a")).unwrap();
 
   assert_eq!(receiver.try_recv(), Ok(()));
 }

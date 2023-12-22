@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Cache
 {
-  files: Vec<PathBuf>,
+  files: Vec<Arc<Path>>,
   sender: mpsc::Sender<Event>,
 }
 
@@ -22,14 +22,14 @@ impl Cache
     (cache, receiver)
   }
 
-  pub fn add(&mut self, path: PathBuf) -> Result
+  pub fn add<P: AsRef<Path>>(&mut self, path: P) -> Result
   {
-    self.files.push(path);
+    self.files.push(Arc::from(path.as_ref()));
     let _ = self.sender.send(());
     Ok(())
   }
 
-  pub fn iter(&self) -> impl Iterator<Item=&PathBuf>
+  pub fn iter(&self) -> impl Iterator<Item=&Arc<Path>>
   {
     self.files.iter()
   }
