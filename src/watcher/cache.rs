@@ -27,8 +27,9 @@ impl Cache
     (cache, receiver)
   }
 
-  pub fn add<P: AsRef<Path>>(&mut self, path: P, content: Vec<u8>) -> Result
+  pub fn add<P: AsRef<Path>, B: Into<Vec<u8>>>(&mut self, path: P, content: B) -> Result
   {
+    let content = content.into();
     let new_hash = blake3::hash(content.as_slice());
 
     let path = path.as_ref();
