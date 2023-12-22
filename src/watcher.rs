@@ -6,6 +6,7 @@ pub struct Watcher<F>
 {
   filter: F,
   path: PathBuf,
+  pub cache: Vec<PathBuf>
 }
 
 impl<F> Watcher<F>
@@ -17,6 +18,7 @@ impl<F> Watcher<F>
     Watcher{
       filter: file_filter,
       path: path.as_ref().to_owned(),
+      cache: vec![],
     }
   }
 }

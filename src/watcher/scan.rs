@@ -11,7 +11,9 @@ where
       let path = entry?.into_path();
       if !(self.filter)(path.as_path()).unwrap_or(false) {continue}
 
-      println!("{}", path.display());
+      let path = path.to_owned();
+
+      self.cache.push(path);
     }
   
     Ok(())
