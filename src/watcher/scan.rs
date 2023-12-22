@@ -12,9 +12,10 @@ where
       if !path.is_file() {continue}
       if !(self.filter)(path.as_path()).unwrap_or(false) {continue}
 
+      let content = fs::read(&path)?;
       let path = path.to_owned();
 
-      self.cache.add(path)?;
+      self.cache.add(path, content)?;
     }
   
     Ok(())
