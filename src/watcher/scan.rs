@@ -14,7 +14,7 @@ where
 
       let path = path.to_owned();
 
-      self.cache.files.push(path);
+      self.cache.add(path)?;
     }
   
     Ok(())

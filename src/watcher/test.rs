@@ -33,7 +33,7 @@ where
   let mut watcher = Watcher::new(tmp_dir.path(), |p| Some(p.extension()?=="c"));
   watcher.scan()?;
 
-  Ok(watcher.cache.files.into_iter().map(|x| format!("{}", diff_paths(x, &watcher.path).unwrap().display())).collect())
+  Ok(watcher.cache.iter().map(|x| format!("{}", diff_paths(x, &watcher.path).unwrap().display())).collect())
 }
 
 fn create_and_find_files<'a, Files>(files: Files) -> Result<Vec<String>>
