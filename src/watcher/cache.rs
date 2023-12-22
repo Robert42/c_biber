@@ -53,6 +53,12 @@ impl Cache
   {
     self.files.keys()
   }
+
+  pub fn full_scan<F>(&mut self, scan: F) -> Result
+  where F: Fn(&mut Self) -> Result
+  {
+    scan(self)
+  }
 }
 
 #[cfg(test)]
