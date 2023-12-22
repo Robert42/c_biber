@@ -22,3 +22,6 @@ impl<F> Watcher<F>
     }
   }
 }
+
+#[cfg(test)]
+mod test;
