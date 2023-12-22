@@ -10,6 +10,7 @@ pub struct Cache
 pub enum Event
 {
   ADD(Arc<Path>, Vec<u8>),
+  MODIFIED(Arc<Path>, Vec<u8>),
 }
 
 impl Cache
@@ -34,7 +35,7 @@ impl Cache
     {
       if old_content != &content
       {
-        let _ = self.sender.send(Event::ADD(path, content));
+        let _ = self.sender.send(Event::MODIFIED(path, content));
       }
     }
     else
