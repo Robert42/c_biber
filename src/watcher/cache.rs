@@ -3,16 +3,16 @@ use super::*;
 pub struct Cache
 {
   files: Vec<PathBuf>,
-  sender: std::sync::mpsc::Sender<Event>,
+  sender: mpsc::Sender<Event>,
 }
 
 pub type Event = ();
 
 impl Cache
 {
-  pub fn new() -> (Self, std::sync::mpsc::Receiver<Event>)
+  pub fn new() -> (Self, mpsc::Receiver<Event>)
   {
-    let (sender, receiver) = std::sync::mpsc::channel();
+    let (sender, receiver) = mpsc::channel();
 
     let cache = Cache{
       files: vec![],
