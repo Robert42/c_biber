@@ -1,12 +1,23 @@
 use super::*;
 
+pub mod cache;
 pub mod scan;
+
+pub use cache::Cache;
 
 pub struct Watcher<F>
 {
   filter: F,
   path: PathBuf,
-  pub cache: Vec<PathBuf>
+  cache: Cache,
+}
+
+impl<F> Watcher<F>
+{
+  pub fn cache(&self) -> &Cache
+  {
+    &self.cache
+  }
 }
 
 impl<F> Watcher<F>
@@ -18,7 +29,7 @@ impl<F> Watcher<F>
     Watcher{
       filter: file_filter,
       path: path.as_ref().to_owned(),
-      cache: vec![],
+      cache: Cache::default(),
     }
   }
 }
