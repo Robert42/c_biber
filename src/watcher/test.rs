@@ -3,8 +3,8 @@ use super::*;
 #[test]
 fn find_all_c_files()
 {
-  assert_eq!(collect_cache([]).unwrap(), vec![] as Vec<&str>);
-  assert_eq!(collect_cache([("a.c", "".as_bytes())]).unwrap(), vec!["a.c"]);
+  assert_eq!(create_and_find_files([]).unwrap(), vec![] as Vec<&str>);
+  assert_eq!(create_and_find_files(["a.c"]).unwrap(), vec!["a.c"]);
 }
 
 fn create_files<'a, Files>(files: Files) -> Result<TempDir>
@@ -33,4 +33,12 @@ where
   watcher.scan()?;
 
   Ok(watcher.cache.into_iter().map(|x| format!("{}", diff_paths(x, &watcher.path).unwrap().display())).collect())
+}
+
+fn create_and_find_files<'a, Files>(files: Files) -> Result<Vec<String>>
+where
+  Files: IntoIterator<Item=&'a str>
+{
+  let nothing = "".as_bytes();
+  collect_cache(files.into_iter().map(|f| (f, nothing)))
 }
