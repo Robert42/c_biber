@@ -24,7 +24,9 @@ impl Cache
 
   pub fn add<P: AsRef<Path>>(&mut self, path: P) -> Result
   {
-    let path : Arc<Path> = Arc::from(path.as_ref());
+    let path = path.as_ref();
+    let path : Arc<Path> = Arc::from(path);
+    if self.files.contains(&path) {return Ok(())}
     self.files.push(path.clone());
     let _ = self.sender.send(path);
     Ok(())
