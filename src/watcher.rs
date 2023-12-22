@@ -26,7 +26,7 @@ impl<F> Watcher<F>
 {
   pub fn new<P: AsRef<Path>>(path: P, file_filter: F) -> Self
   {
-    let (cache, ()) = Cache::new();
+    let (cache, _) = Cache::new();
     Watcher{
       filter: file_filter,
       path: path.as_ref().to_owned(),
