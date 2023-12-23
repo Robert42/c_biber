@@ -12,6 +12,7 @@ keywords = ["C", "Build system"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+blake3 = "1.5.0"
 thiserror = "1.0.51"
 walkdir = "2.4.0"
 
