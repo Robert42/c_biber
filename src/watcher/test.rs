@@ -30,7 +30,7 @@ where
 {
   let tmp_dir = create_files(files)?;
 
-  let (mut watcher, _) = Watcher::new(tmp_dir.path(), |p| Some(p.extension()?=="c"));
+  let (mut watcher, _) = Watcher::new(tmp_dir.path(), |p| Some(p.extension()?=="c"))?;
   watcher.scan()?;
 
   Ok(watcher.cache.iter().map(|x| format!("{}", diff_paths(x, &watcher.path).unwrap().display())).collect())

@@ -25,4 +25,6 @@ pub enum Error
   FILE_WALKER_ERROR(#[from] walkdir::Error),
   #[error("channel-error: {0}")]
   CHANNEL_ERROR(#[from] mpsc::RecvError),
+  #[error("notify-error: {0}")]
+  NOTIFY_ERROR(#[from] notify::Error),
 }
