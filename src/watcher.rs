@@ -24,14 +24,15 @@ impl<F> Watcher<F>
   where
     F: Fn(&Path)->Option<bool>
 {
-  pub fn new<P: AsRef<Path>>(path: P, file_filter: F) -> Self
+  pub fn new<P: AsRef<Path>>(path: P, file_filter: F) -> (Self, mpsc::Receiver<cache::Event>)
   {
-    let (cache, _) = Cache::new();
-    Watcher{
+    let (cache, receiver) = Cache::new();
+    let w = Watcher{
       filter: file_filter,
       path: path.as_ref().to_owned(),
       cache,
-    }
+    };
+    (w, receiver)
   }
 }
 
