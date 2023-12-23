@@ -6,6 +6,7 @@ pub use watcher::Watcher;
 mod dev_prelude;
 use dev_prelude::*;
 
+extern crate notify;
 #[cfg(test)]
 extern crate pathdiff;
 extern crate walkdir;
