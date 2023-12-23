@@ -3,6 +3,7 @@ use super::*;
 pub struct Cache
 {
   files: HashMap<Arc<Path>, blake3::Hash>,
+  added: HashSet<Arc<Path>>,
   sender: mpsc::Sender<Event>,
 }
 
@@ -11,6 +12,7 @@ pub enum Event
 {
   ADD(Arc<Path>, Vec<u8>),
   MODIFIED(Arc<Path>, Vec<u8>),
+  REMOVE(Arc<Path>),
 }
 
 impl Cache
@@ -21,6 +23,7 @@ impl Cache
 
     let cache = Cache{
       files: HashMap::with_capacity(4096),
+      added: HashSet::with_capacity(4096),
       sender
     };
 
@@ -34,6 +37,7 @@ impl Cache
 
     let path = path.as_ref();
     let path : Arc<Path> = Arc::from(path);
+    self.added.insert(path.clone());
     if let Some(old_hash) = self.files.get(&path).copied()
     {
       if old_hash != new_hash
@@ -57,7 +61,15 @@ impl Cache
   pub fn full_scan<F>(&mut self, scan: F) -> Result
   where F: Fn(&mut Self) -> Result
   {
-    scan(self)
+    self.added.clear();
+    scan(self)?;
+
+    self.files.retain(|path,_|
+      if self.added.contains(path) {true}
+      else {let _ = self.sender.send(Event::REMOVE(path.clone())); false}
+    );
+
+    Ok(())
   }
 }
 

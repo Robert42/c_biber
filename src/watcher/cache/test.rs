@@ -31,23 +31,26 @@ fn test_full_rescan()
   let (mut cache, receiver) = Cache::new();
 
   cache.add(Path::new("original_unmodified"), b"same content").unwrap();
-  cache.add(Path::new("modified"), b"original content").unwrap();
+  cache.add(Path::new("to be modified"), b"original content").unwrap();
+  cache.add(Path::new("to be removed"), b"content to be removed").unwrap();
 
   assert_eq!(receiver.try_recv(), Ok(Event::ADD(Arc::from(Path::new("original_unmodified")), b"same content".into())));
-  assert_eq!(receiver.try_recv(), Ok(Event::ADD(Arc::from(Path::new("modified")), b"original content".into())));
+  assert_eq!(receiver.try_recv(), Ok(Event::ADD(Arc::from(Path::new("to be modified")), b"original content".into())));
+  assert_eq!(receiver.try_recv(), Ok(Event::ADD(Arc::from(Path::new("to be removed")), b"content to be removed".into())));
   assert!(receiver.try_recv().is_err());
 
   cache.full_scan(
     |cache|
     {
       cache.add(Path::new("original_unmodified"), b"same content")?;
-      cache.add(Path::new("modified"), b"modified content")?;
+      cache.add(Path::new("to be modified"), b"modified content")?;
       cache.add(Path::new("newly_added"), b"new content")?;
       Ok(())
     }
   ).unwrap();
 
-  assert_eq!(receiver.try_recv(), Ok(Event::MODIFIED(Arc::from(Path::new("modified")), b"modified content".into())));
+  assert_eq!(receiver.try_recv(), Ok(Event::MODIFIED(Arc::from(Path::new("to be modified")), b"modified content".into())));
   assert_eq!(receiver.try_recv(), Ok(Event::ADD(Arc::from(Path::new("newly_added")), b"new content".into())));
+  assert_eq!(receiver.try_recv(), Ok(Event::REMOVE(Arc::from(Path::new("to be removed")))));
   assert!(receiver.try_recv().is_err());
 }
