@@ -1,21 +1,20 @@
 use super::*;
 
-impl<F> Watcher<F>
-where
-  F: Fn(&Path)->Option<bool>
+impl Cache
 {
-  pub fn scan(&mut self) -> Result
+  pub fn scan_files<P: AsRef<Path>, F: Fn(&Path)->Option<bool>>(&mut self, path: P, filter: F) -> Result
   {
-    for entry in WalkDir::new(&self.path)
+    let path = path.as_ref();
+    for entry in WalkDir::new(path)
     {
       let path = entry?.into_path();
       if !path.is_file() {continue}
-      if !(self.filter)(path.as_path()).unwrap_or(false) {continue}
+      if !(filter)(path.as_path()).unwrap_or(false) {continue}
 
       let content = fs::read(&path)?;
       let path = path.to_owned();
 
-      self.cache.add(path, content)?;
+      self.add(path, content)?;
     }
   
     Ok(())

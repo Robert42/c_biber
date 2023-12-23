@@ -53,11 +53,6 @@ impl Cache
     Ok(())
   }
 
-  pub fn iter(&self) -> impl Iterator<Item=&Arc<Path>>
-  {
-    self.files.keys()
-  }
-
   pub fn full_scan<F>(&mut self, scan: F) -> Result
   where F: Fn(&mut Self) -> Result
   {

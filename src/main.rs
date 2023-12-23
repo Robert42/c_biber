@@ -3,12 +3,18 @@ extern crate c_biber;
 fn main() -> c_biber::Result
 {
   let curr_dir = std::env::current_dir()?;
-  let (mut watcher, receiver) = c_biber::Watcher::new(curr_dir, |p| Some(p.extension()?=="rs"))?;
-  watcher.scan()?;
+  let receiver = c_biber::watch(curr_dir, |p| Some(p.extension()?=="rs"))?;
 
   loop
   {
-    let event = receiver.recv()?;
+    let event = receiver.recv().unwrap();
+
+    use c_biber::watcher::Watch_Event::*;
+    let event = match  event{
+      CACHE_UPDATED(e) => e,
+      FAILURE(e) => Err(e)?,
+      FIRST_SCAN_FINISHED => continue,
+    };
 
     use c_biber::watcher::cache::Event::*;
     let label = match &event

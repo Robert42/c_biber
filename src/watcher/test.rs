@@ -29,11 +29,28 @@ where
   Files: IntoIterator<Item=(&'a str, &'a [u8])>
 {
   let tmp_dir = create_files(files)?;
+  let root = tmp_dir.path();
 
-  let (mut watcher, _) = Watcher::new(tmp_dir.path(), |p| Some(p.extension()?=="c"))?;
-  watcher.scan()?;
+  let mut files = vec![];
+  let receiver = watch(root, |p| Some(p.extension()?=="c"))?;
+  while let Ok(event) = receiver.recv()
+  {
+    use watcher::Watch_Event::*;
+    let event = match  event{
+      CACHE_UPDATED(e) => e,
+      FAILURE(e) => Err(e)?,
+      FIRST_SCAN_FINISHED => break,
+    };
+    use cache::Event::*;
+    let path = match event
+    {
+      MODIFIED(path, _) | ADD(path, _) => path,
+      REMOVE(_) => unimplemented!(),
+    };
+    files.push(path);
+  }
 
-  Ok(watcher.cache.iter().map(|x| format!("{}", diff_paths(x, &watcher.path).unwrap().display())).collect())
+  Ok(files.iter().map(|x| format!("{}", diff_paths(x, root).unwrap().display())).collect())
 }
 
 fn create_and_find_files<'a, Files>(files: Files) -> Result<Vec<String>>
