@@ -6,8 +6,10 @@ fn main() -> c_biber::Result
   let (mut watcher, receiver) = c_biber::Watcher::new(curr_dir, |p| Some(p.extension()?=="rs"));
   watcher.scan()?;
 
-  while let event = receiver.recv()?
+  loop
   {
+    let event = receiver.recv()?;
+
     use c_biber::watcher::cache::Event::*;
     let label = match &event
     {
@@ -25,6 +27,4 @@ fn main() -> c_biber::Result
       REMOVE(path) => println!("== {label} {} ==", path.display()),
     }
   }
-
-  Ok(())
 }
