@@ -15,7 +15,7 @@ fn handle_notifications() -> Result
   let root = temp_dir.path();
 
   let mut files : Vec<(&'static str, &'static [u8])> = vec![];
-  for event in watch(root, any_file)?.only_first_scan()
+  for event in watch(root, any_file)?.poll_timeout(Duration::from_millis(2))
   {
     let event = event?;
     use cache::Event::*;

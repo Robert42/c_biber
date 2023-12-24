@@ -47,6 +47,22 @@ impl Watcher
       }
     )
   }
+
+  pub fn poll_timeout(&self, timeout: Duration) -> impl Iterator<Item = Result<cache::Event>> + '_
+  {
+    use Watch_Event::*;
+    self.0.recv_timeout(timeout).ok().into_iter().chain(self.0.try_iter())
+      .filter(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} )
+      .map(
+      |x|
+      match x
+      {
+        CACHE_UPDATED(update) => Ok(update),
+        FAILURE(e) => Err(e),
+        FIRST_SCAN_FINISHED => unreachable!(),
+      }
+    )
+  }
 }
 
 pub fn watch<P, F>(path: P, file_filter: F) -> Result<Watcher>
