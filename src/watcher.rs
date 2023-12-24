@@ -19,49 +19,20 @@ impl Watcher
   pub fn only_first_scan(self) -> impl Iterator<Item=Result<cache::Event>>
   {
     use Watch_Event::*;
-    self.0.into_iter()
-      .take_while(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} )
-      .map(
-      |x|
-      match x
-      {
-        CACHE_UPDATED(update) => Ok(update),
-        FAILURE(e) => Err(e),
-        FIRST_SCAN_FINISHED => unreachable!(),
-      }
-    )
+    let i = self.0.into_iter()
+      .take_while(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} );
+    convert_iterator(i)
   }
 
   pub fn watch(self) -> impl Iterator<Item=Result<cache::Event>>
   {
-    use Watch_Event::*;
-    self.0.into_iter()
-      .filter(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} )
-      .map(
-      |x|
-      match x
-      {
-        CACHE_UPDATED(update) => Ok(update),
-        FAILURE(e) => Err(e),
-        FIRST_SCAN_FINISHED => unreachable!(),
-      }
-    )
+    convert_iterator(self.0.into_iter())
   }
 
   pub fn poll_timeout(&self, timeout: Duration) -> impl Iterator<Item = Result<cache::Event>> + '_
   {
-    use Watch_Event::*;
-    self.0.recv_timeout(timeout).ok().into_iter().chain(self.0.try_iter())
-      .filter(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} )
-      .map(
-      |x|
-      match x
-      {
-        CACHE_UPDATED(update) => Ok(update),
-        FAILURE(e) => Err(e),
-        FIRST_SCAN_FINISHED => unreachable!(),
-      }
-    )
+    let i = self.0.recv_timeout(timeout).ok().into_iter().chain(self.0.try_iter());
+    convert_iterator(i)
   }
 }
 
@@ -113,3 +84,18 @@ fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_f
 mod test;
 
 use crate::notify::Watcher as Notify_Watcher;
+
+fn convert_iterator<I: IntoIterator<Item=Watch_Event>>(i: I) -> impl Iterator<Item=Result<cache::Event>>
+{
+  use Watch_Event::*;
+  i.into_iter().filter(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} )
+    .map(
+    |x|
+    match x
+    {
+      CACHE_UPDATED(update) => Ok(update),
+      FAILURE(e) => Err(e),
+      FIRST_SCAN_FINISHED => unreachable!(),
+    }
+  )
+}
