@@ -14,22 +14,10 @@ fn handle_notifications() -> Result
   let temp_dir = create_files([("original_unmodified", b"same content")])?;
   let root = temp_dir.path();
 
-  let mut files : Vec<(&'static str, &'static [u8])> = vec![];
-  for event in watch(root, any_file)?.poll_timeout(Duration::from_millis(2))
-  {
-    let event = event?;
-    use cache::Event::*;
-    let (path, content) = match event
-    {
-      MODIFIED(path, content) | ADD(path, content) => (path, content),
-      REMOVE(_) => unreachable!(),
-    };
-    let path = diff_paths(path, root).unwrap();
-    let path = format!("{}", path.display());
-    files.push((path.leak(), content.leak()));
-  }
+  let watcher = watch(root, any_file)?;
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
 
-  assert_eq!(files, vec![("original_unmodified", b"same content".as_slice())]);
+  assert_eq!(updates.added, vec![("original_unmodified", b"same content".as_slice())]);
 
   Ok(())
 }
@@ -51,30 +39,20 @@ where
   Ok(tmp_dir)
 }
 
-fn collect_cache<'a, Files>(files: Files) -> Result<Vec<String>>
+fn collect_cache<'a, Files>(files: Files) -> Result<Vec<&'static str>>
 where
   Files: IntoIterator<Item=(&'a str, &'a [u8])>
 {
   let tmp_dir = create_files(files)?;
   let root = tmp_dir.path();
 
-  let mut files = vec![];
-  for event in watch(root, is_c_file)?.only_first_scan()
-  {
-    let event = event?;
-    use cache::Event::*;
-    let path = match event
-    {
-      MODIFIED(path, _) | ADD(path, _) => path,
-      REMOVE(_) => unreachable!(),
-    };
-    files.push(path);
-  }
+  let watcher = watch(root, is_c_file)?;
+  let updates = Updates::new(root, watcher.only_first_scan())?;
 
-  Ok(files.iter().map(|x| format!("{}", diff_paths(x, root).unwrap().display())).collect())
+  return Ok(updates.added.into_iter().map(|(p,_)| p).collect());
 }
 
-fn create_and_find_files<'a, Files>(files: Files) -> Result<Vec<String>>
+fn create_and_find_files<'a, Files>(files: Files) -> Result<Vec<&'static str>>
 where
   Files: IntoIterator<Item=&'a str>
 {
@@ -92,4 +70,40 @@ fn is_c_file(path: &Path) -> Option<bool>
 fn any_file(_: &Path) -> Option<bool>
 {
   Some(true)
+}
+
+#[derive(Default)]
+struct Updates
+{
+  added: Vec<(&'static str, &'static [u8])>,
+  modified: Vec<(&'static str, &'static [u8])>,
+  removed: Vec<&'static str>,
+}
+
+impl Updates
+{
+  fn new<T: IntoIterator<Item = Result<cache::Event>>, P: AsRef<Path>>(root: P, iter: T) -> Result<Self>
+  {
+    let root = root.as_ref();
+    let leak_path = |path: Arc<Path>| -> &'static str
+    {
+      let path = diff_paths(path, root).unwrap();
+      format!("{}", path.display()).leak()
+    };
+
+    let mut updates = Updates::default();
+    for event in iter
+    {
+      let event = event?;
+      use cache::Event::*;
+      match event
+      {
+        ADD(path, content) => updates.added.push((leak_path(path), content.leak())),
+        MODIFIED(path, content) => updates.modified.push((leak_path(path), content.leak())),
+        REMOVE(path) => updates.removed.push(leak_path(path)),
+      };
+    }
+
+    return Ok(updates);
+  }
 }
