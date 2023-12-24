@@ -3,18 +3,11 @@ extern crate c_biber;
 fn main() -> c_biber::Result
 {
   let curr_dir = std::env::current_dir()?;
-  let receiver = c_biber::watch(curr_dir, |p| Some(p.extension()?=="rs"))?;
+  let watcher = c_biber::watch(curr_dir, |p| Some(p.extension()?=="rs"))?;
 
-  loop
+  for event in watcher.watch()
   {
-    let event = receiver.recv().unwrap();
-
-    use c_biber::watcher::Watch_Event::*;
-    let event = match  event{
-      CACHE_UPDATED(e) => e,
-      FAILURE(e) => Err(e)?,
-      FIRST_SCAN_FINISHED => continue,
-    };
+    let event = event?;
 
     use c_biber::watcher::cache::Event::*;
     let label = match &event
@@ -33,4 +26,6 @@ fn main() -> c_biber::Result
       REMOVE(path) => println!("== {label} {} ==", path.display()),
     }
   }
+
+  Ok(())
 }

@@ -33,15 +33,10 @@ where
   let root = tmp_dir.path();
 
   let mut files = vec![];
-  let receiver = watch(root, is_c_file)?;
-  while let Ok(event) = receiver.recv()
+  let watcher = watch(root, is_c_file)?;
+  for event in watcher.only_first_scan()
   {
-    use watcher::Watch_Event::*;
-    let event = match  event{
-      CACHE_UPDATED(e) => e,
-      FAILURE(e) => Err(e)?,
-      FIRST_SCAN_FINISHED => break,
-    };
+    let event = event?;
     use cache::Event::*;
     let path = match event
     {

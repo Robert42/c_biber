@@ -12,7 +12,44 @@ pub enum Watch_Event
   FIRST_SCAN_FINISHED,
 }
 
-pub fn watch<P, F>(path: P, file_filter: F) -> Result<mpsc::Receiver<Watch_Event>>
+pub struct Watcher(mpsc::Receiver<Watch_Event>);
+
+impl Watcher
+{
+  pub fn only_first_scan(self) -> impl Iterator<Item=Result<cache::Event>>
+  {
+    use Watch_Event::*;
+    self.0.into_iter()
+      .take_while(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} )
+      .map(
+      |x|
+      match x
+      {
+        CACHE_UPDATED(update) => Ok(update),
+        FAILURE(e) => Err(e),
+        FIRST_SCAN_FINISHED => unreachable!(),
+      }
+    )
+  }
+
+  pub fn watch(self) -> impl Iterator<Item=Result<cache::Event>>
+  {
+    use Watch_Event::*;
+    self.0.into_iter()
+      .filter(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} )
+      .map(
+      |x|
+      match x
+      {
+        CACHE_UPDATED(update) => Ok(update),
+        FAILURE(e) => Err(e),
+        FIRST_SCAN_FINISHED => unreachable!(),
+      }
+    )
+  }
+}
+
+pub fn watch<P, F>(path: P, file_filter: F) -> Result<Watcher>
 where
   P: AsRef<Path>,
   F: Fn(&Path)->Option<bool> + 'static + std::marker::Send,
@@ -28,7 +65,7 @@ where
       Err(e) => { let _ = watch_sender.send(Watch_Event::FAILURE(e)); },
     }
   );
-  Ok(watch_receiver)
+  Ok(Watcher(watch_receiver))
 }
 
 fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_filter: F) -> Result
