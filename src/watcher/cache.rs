@@ -42,6 +42,7 @@ impl Cache
     {
       if old_hash != new_hash
       {
+        self.files.insert(path.clone(), new_hash);
         let _ = self.sender.send(Event::MODIFIED(path, content));
       }
     }
