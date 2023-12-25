@@ -12,84 +12,84 @@ fn find_all_c_files()
 fn handle_notifications() -> Result
 {
   let temp_dir = create_files([
-    ("original_unmodified", b"same content".as_slice()),
-    ("to be modified", b"original content".as_slice()),
-    ("to be removed", b"content to be removed".as_slice()),
+    ("original_unmodified.c", b"same content".as_slice()),
+    ("to be modified.c", b"original content".as_slice()),
+    ("to be removed.c", b"content to be removed".as_slice()),
   ])?;
   let root = temp_dir.path();
 
-  let watcher = watch(root, any_file)?;
+  let watcher = watch(root, is_c_file)?;
   
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
     added: vec![
-      ("original_unmodified", b"same content".as_slice()),
-      ("to be modified", b"original content".as_slice()),
-      ("to be removed", b"content to be removed".as_slice()),
+      ("original_unmodified.c", b"same content".as_slice()),
+      ("to be modified.c", b"original content".as_slice()),
+      ("to be removed.c", b"content to be removed".as_slice()),
     ],
     modified: vec![],
     removed: vec![],
   });
   
-  fs::write(root.join("newly_added"), b"new content")?;
+  fs::write(root.join("newly_added.c"), b"new content")?;
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
     added: vec![
-      ("newly_added", b"new content".as_slice()),
+      ("newly_added.c", b"new content".as_slice()),
     ],
     modified: vec![],
     removed: vec![],
   });
 
-  fs::write(root.join("to be modified"), b"modified content")?;
+  fs::write(root.join("to be modified.c"), b"modified content")?;
   std::thread::sleep(Duration::from_millis(2));
 
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
     added: vec![],
     modified: vec![
-      ("to be modified", b"modified content".as_slice()),
+      ("to be modified.c", b"modified content".as_slice()),
     ],
     removed: vec![],
   });
 
-  fs::remove_file(root.join("to be removed"))?;
+  fs::remove_file(root.join("to be removed.c"))?;
 
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
     added: vec![],
     modified: vec![],
     removed: vec![
-      "to be removed",
+      "to be removed.c",
     ],
   });
 
-  fs::rename(root.join("newly_added"), root.join("just renamed"))?;
+  fs::rename(root.join("newly_added.c"), root.join("just renamed.c"))?;
 
   std::thread::sleep(Duration::from_millis(2)); // TODO: is there a better way
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
-    added: vec![("just renamed", b"new content")],
+    added: vec![("just renamed.c", b"new content")],
     modified: vec![],
-    removed: vec!["newly_added"],
+    removed: vec!["newly_added.c"],
   });
 
   let second_tmp_dir = TempDir::new("second_tmp_dir").unwrap();
   let root_2 = second_tmp_dir.path();
-  fs::rename(root.join("just renamed"), root_2.join("just moved out"))?;
+  fs::rename(root.join("just renamed.c"), root_2.join("just moved out.c"))?;
 
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
     added: vec![],
     modified: vec![],
-    removed: vec!["just renamed"],
+    removed: vec!["just renamed.c"],
   });
 
-  fs::rename(root_2.join("just moved out"), root.join("moved back in"))?;
+  fs::rename(root_2.join("just moved out.c"), root.join("moved back in.c"))?;
 
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
-    added: vec![("moved back in", b"new content")],
+    added: vec![("moved back in.c", b"new content")],
     modified: vec![],
     removed: vec![],
   });
@@ -140,11 +140,6 @@ where
 fn is_c_file(path: &Path) -> Option<bool>
 {
   Some(path.extension()?=="c")
-}
-
-fn any_file(_: &Path) -> Option<bool>
-{
-  Some(true)
 }
 
 #[derive(Default, Debug, PartialEq, Eq)]
