@@ -53,6 +53,15 @@ impl Cache
     }
   }
 
+  pub fn remove<P: AsRef<Path>>(&mut self, path: P)
+  {
+    let path = path.as_ref();
+    if let Some((path, _)) = self.files.remove_entry(path)
+    {
+      let _ = self.sender.send(Event::REMOVE(path));
+    }
+  }
+
   pub fn full_scan<F>(&mut self, scan: F) -> Result
   where F: Fn(&mut Self) -> Result
   {

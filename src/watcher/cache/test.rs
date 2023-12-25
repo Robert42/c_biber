@@ -29,6 +29,12 @@ fn test_receive_updates()
   cache.add(Path::new("b"), vec![]);
 
   assert!(receiver.try_recv().is_err());
+
+  // Test removing
+  cache.remove(Path::new("a"));
+
+  assert_eq!(receiver.try_recv(), Ok(Event::REMOVE(Arc::from(Path::new("a")))));
+  assert!(receiver.try_recv().is_err());
 }
 
 #[test]
