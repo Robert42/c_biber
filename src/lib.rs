@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types)]
 
+pub mod tool_finder;
+
 pub mod watcher;
 pub use watcher::{watch, Watch_Event};
 
@@ -21,8 +23,10 @@ pub enum Error
 {
   #[error("io-error: {0}")]
   IO(#[from] std::io::Error),
-  #[error("io-error: {0}")]
+  #[error("file walker error: {0}")]
   FILE_WALKER_ERROR(#[from] walkdir::Error),
+  #[error("env_var-error: {0}")]
+  ENV_VAR_ERROR(#[from] std::env::VarError),
   #[error("channel-error (receiver): {0}")]
   CHANNEL_ERROR(#[from] mpsc::RecvError),
   #[error("channel-error (sender)")]
