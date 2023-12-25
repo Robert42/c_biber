@@ -29,7 +29,6 @@ fn handle_notifications() -> Result
     ],
     modified: vec![],
     removed: vec![],
-    renamed: vec![],
   });
   
   fs::write(root.join("newly_added"), b"new content")?;
@@ -40,7 +39,6 @@ fn handle_notifications() -> Result
     ],
     modified: vec![],
     removed: vec![],
-    renamed: vec![],
   });
 
   fs::write(root.join("to be modified"), b"modified content")?;
@@ -53,7 +51,6 @@ fn handle_notifications() -> Result
       ("to be modified", b"modified content".as_slice()),
     ],
     removed: vec![],
-    renamed: vec![],
   });
 
   fs::remove_file(root.join("to be removed"))?;
@@ -65,19 +62,16 @@ fn handle_notifications() -> Result
     removed: vec![
       "to be removed",
     ],
-    renamed: vec![],
   });
 
   fs::rename(root.join("newly_added"), root.join("just renamed"))?;
 
+  std::thread::sleep(Duration::from_millis(2));
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
-    added: vec![],
+    added: vec![("just renamed", b"new content")],
     modified: vec![],
-    removed: vec![],
-    renamed: vec![
-      ("newly_added", "just renamed"),
-    ],
+    removed: vec!["newly_added"],
   });
 
   Ok(())
@@ -139,7 +133,6 @@ struct Updates
   added: Vec<(&'static str, &'static [u8])>,
   modified: Vec<(&'static str, &'static [u8])>,
   removed: Vec<&'static str>,
-  renamed: Vec<(&'static str, &'static str)>,
 }
 
 impl Updates
@@ -163,7 +156,6 @@ impl Updates
         ADD(path, content) => updates.added.push((leak_path(path), content.leak())),
         MODIFIED(path, content) => updates.modified.push((leak_path(path), content.leak())),
         REMOVE(path) => updates.removed.push(leak_path(path)),
-        RENAME(from, to) => updates.renamed.push((leak_path(from), leak_path(to))),
       };
     }
 

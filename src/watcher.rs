@@ -88,6 +88,7 @@ fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_f
       Create(notify::event::CreateKind::File)
       | Modify(notify::event::ModifyKind::Data(notify::event::DataChange::Any))
       | Modify(notify::event::ModifyKind::Data(notify::event::DataChange::Content))
+      | Modify(notify::event::ModifyKind::Name(notify::event::RenameMode::To))
       | Access(notify::event::AccessKind::Close(notify::event::AccessMode::Write))
       =>
         for p in event.paths.into_iter()
@@ -95,19 +96,13 @@ fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_f
           let content = fs::read(&p)?;
           cache.add(p, content);
         },
-      Remove(notify::event::RemoveKind::File) =>
+        Remove(notify::event::RemoveKind::File)
+        | Modify(notify::event::ModifyKind::Name(notify::event::RenameMode::From))
+      =>
         for p in event.paths.into_iter()
         {
           cache.remove(p);
         },
-      Modify(notify::event::ModifyKind::Name(notify::event::RenameMode::Both)) =>
-      {
-        let mut paths = event.paths.into_iter();
-        while let (Some(from), Some(to)) = {let from = paths.next();let to = paths.next(); (from, to)}
-        {
-          cache.rename(from, to);
-        }
-      }
       Create(_) | Modify(_) | Remove(_) | Access(_) | Any | Other => (),
     }
 
