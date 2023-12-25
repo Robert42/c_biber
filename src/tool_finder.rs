@@ -4,6 +4,7 @@ use super::*;
 pub enum Compiler
 {
   GCC,
+  CLANG,
 }
 
 use Compiler::*;
@@ -15,6 +16,7 @@ impl Compiler
     match self
     {
       GCC => Path::new("gcc"),
+      CLANG => Path::new("clang"),
     }
   }
 }
@@ -26,6 +28,7 @@ pub fn find_compiler() -> Result<Vec<Compiler>>
   let mut compilers = vec![];
   for (compiler, arg) in [
     (GCC, "--version"),
+    (CLANG, "--version"),
   ]
   {
     if let Ok(output) = std::process::Command::new(compiler.path()).arg(arg).output()
