@@ -33,19 +33,21 @@ impl Cache<mpsc::Sender<Event>>
   pub fn new() -> (Self, mpsc::Receiver<Event>)
   {
     let (sender, receiver) = mpsc::channel();
-
-    let cache = Cache{
-      files: HashMap::with_capacity(4096),
-      added: HashSet::with_capacity(4096),
-      sender
-    };
-
-    (cache, receiver)
+    (Self::with_sender(sender), receiver)
   }
 }
 
 impl<Sender: Event_Sender> Cache<Sender>
 {
+  pub fn with_sender(sender: Sender) -> Self
+  {
+    Cache{
+      files: HashMap::with_capacity(4096),
+      added: HashSet::with_capacity(4096),
+      sender
+    }
+  }
+
   pub fn add<P: AsRef<Path>, B: Into<Vec<u8>>>(&mut self, path: P, content: B)
   {
     let content = content.into();
