@@ -11,12 +11,12 @@ use Compiler::*;
 
 impl Compiler
 {
-  pub fn path(self) -> &'static Path
+  pub fn command(self) -> std::process::Command
   {
     match self
     {
-      GCC => Path::new("gcc"),
-      CLANG => Path::new("clang"),
+      GCC => std::process::Command::new("gcc"),
+      CLANG => std::process::Command::new("clang"),
     }
   }
 }
@@ -31,7 +31,7 @@ pub fn find_compiler() -> Result<Vec<Compiler>>
     (CLANG, "--version"),
   ]
   {
-    if let Ok(output) = std::process::Command::new(compiler.path()).arg(arg).output()
+    if let Ok(output) = compiler.command().arg(arg).output()
     {
       if output.status.success()
       {
