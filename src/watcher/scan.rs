@@ -1,6 +1,6 @@
 use super::*;
 
-impl Cache
+impl<Sender: cache::Event_Sender> Cache<Sender>
 {
   pub fn scan_files<P: AsRef<Path>, F: Fn(&Path)->Option<bool>>(&mut self, path: P, filter: F) -> Result
   {

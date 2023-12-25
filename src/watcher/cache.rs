@@ -1,10 +1,23 @@
 use super::*;
 
-pub struct Cache
+pub struct Cache<Sender: Event_Sender>
 {
   files: HashMap<Arc<Path>, blake3::Hash>,
   added: HashSet<Arc<Path>>,
-  sender: mpsc::Sender<Event>,
+  sender: Sender,
+}
+
+pub trait Event_Sender
+{
+  fn send(&self, event: Event);
+}
+
+impl Event_Sender for mpsc::Sender<Event>
+{
+  fn send(&self, event: Event)
+  {
+    let _ = mpsc::Sender::<Event>::send(self, event);
+  }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,7 +28,7 @@ pub enum Event
   REMOVE(Arc<Path>),
 }
 
-impl Cache
+impl Cache<mpsc::Sender<Event>>
 {
   pub fn new() -> (Self, mpsc::Receiver<Event>)
   {
@@ -29,7 +42,10 @@ impl Cache
 
     (cache, receiver)
   }
+}
 
+impl<Sender: Event_Sender> Cache<Sender>
+{
   pub fn add<P: AsRef<Path>, B: Into<Vec<u8>>>(&mut self, path: P, content: B)
   {
     let content = content.into();
@@ -43,13 +59,13 @@ impl Cache
       if old_hash != new_hash
       {
         self.files.insert(path.clone(), new_hash);
-        let _ = self.sender.send(Event::MODIFIED(path, content));
+        self.sender.send(Event::MODIFIED(path, content));
       }
     }
     else
     {
       self.files.insert(path.clone(), new_hash);
-      let _ = self.sender.send(Event::ADD(path, content));
+      self.sender.send(Event::ADD(path, content));
     }
   }
 
@@ -58,7 +74,7 @@ impl Cache
     let path = path.as_ref();
     if let Some((path, _)) = self.files.remove_entry(path)
     {
-      let _ = self.sender.send(Event::REMOVE(path));
+      self.sender.send(Event::REMOVE(path));
     }
   }
 
@@ -70,7 +86,7 @@ impl Cache
 
     self.files.retain(|path,_|
       if self.added.contains(path) {true}
-      else {let _ = self.sender.send(Event::REMOVE(path.clone())); false}
+      else {self.sender.send(Event::REMOVE(path.clone())); false}
     );
 
     Ok(())
