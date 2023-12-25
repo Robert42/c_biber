@@ -46,7 +46,7 @@ where
   let path : PathBuf = path.as_ref().to_owned();
 
   std::thread::spawn(move ||
-    match _watch(path, &mut watch_sender, file_filter)
+    match _watch(path, &mut watch_sender, &file_filter)
     {
       Ok(_) => (),
       Err(e) => { let _ = watch_sender.send(Watch_Event::FAILURE(e)); },
@@ -55,7 +55,7 @@ where
   Ok(Watcher(watch_receiver))
 }
 
-fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_filter: F) -> Result
+fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_filter: &F) -> Result
   where F: Fn(&Path)->Option<bool>,
 {
   let (mut cache, cache_update_receiver) = Cache::new();
@@ -76,7 +76,37 @@ fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_f
 
   loop
   {
-    let _ = fs_notify_receiver.recv()?;
+    use notify::EventKind::*;
+    let event = fs_notify_receiver.recv()??;
+    if event.need_rescan()
+    {
+      cache.full_scan(|cache| cache.scan_files(&path, file_filter))?;
+      continue;
+    }
+    match event.kind
+    {
+      Create(notify::event::CreateKind::File)
+      | Modify(notify::event::ModifyKind::Data(notify::event::DataChange::Any))
+      | Modify(notify::event::ModifyKind::Data(notify::event::DataChange::Content))
+      | Access(notify::event::AccessKind::Close(notify::event::AccessMode::Write))
+      =>
+        for p in event.paths.into_iter()
+        {
+          let content = fs::read(&p)?;
+          cache.add(p, content);
+        },
+      Remove(notify::event::RemoveKind::File) =>
+        for p in event.paths.into_iter()
+        {
+          cache.remove(p);
+        },
+      Create(_) | Modify(_) | Remove(_) | Access(_) | Any | Other => (),
+    }
+
+    while let Ok(e) = cache_update_receiver.try_recv()
+    {
+      watch_sender.send(Watch_Event::CACHE_UPDATED(e))?;
+    }
   }
 }
 

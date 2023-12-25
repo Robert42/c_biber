@@ -11,13 +11,58 @@ fn find_all_c_files()
 #[test]
 fn handle_notifications() -> Result
 {
-  let temp_dir = create_files([("original_unmodified", b"same content")])?;
+  let temp_dir = create_files([
+    ("original_unmodified", b"same content".as_slice()),
+    ("to be modified", b"original content".as_slice()),
+    ("to be removed", b"content to be removed".as_slice()),
+  ])?;
   let root = temp_dir.path();
 
   let watcher = watch(root, any_file)?;
+  
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![
+      ("original_unmodified", b"same content".as_slice()),
+      ("to be modified", b"original content".as_slice()),
+      ("to be removed", b"content to be removed".as_slice()),
+    ],
+    modified: vec![],
+    removed: vec![],
+  });
+  
+  fs::write(root.join("newly_added"), b"new content")?;
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![
+      ("newly_added", b"new content".as_slice()),
+    ],
+    modified: vec![],
+    removed: vec![],
+  });
 
-  assert_eq!(updates.added, vec![("original_unmodified", b"same content".as_slice())]);
+  fs::write(root.join("to be modified"), b"modified content")?;
+  std::thread::sleep(Duration::from_millis(2));
+
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![],
+    modified: vec![
+      ("to be modified", b"modified content".as_slice()),
+    ],
+    removed: vec![],
+  });
+
+  fs::remove_file(root.join("to be removed"))?;
+
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![],
+    modified: vec![],
+    removed: vec![
+      "to be removed",
+    ],
+  });
 
   Ok(())
 }
@@ -72,7 +117,7 @@ fn any_file(_: &Path) -> Option<bool>
   Some(true)
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq, Eq)]
 struct Updates
 {
   added: Vec<(&'static str, &'static [u8])>,
@@ -103,6 +148,10 @@ impl Updates
         REMOVE(path) => updates.removed.push(leak_path(path)),
       };
     }
+
+    updates.added.sort();
+    updates.modified.sort();
+    updates.removed.sort();
 
     return Ok(updates);
   }
