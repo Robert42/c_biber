@@ -74,6 +74,26 @@ fn handle_notifications() -> Result
     removed: vec!["newly_added"],
   });
 
+  let second_tmp_dir = TempDir::new("second_tmp_dir").unwrap();
+  let root_2 = second_tmp_dir.path();
+  fs::rename(root.join("just renamed"), root_2.join("just moved out"))?;
+
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![],
+    modified: vec![],
+    removed: vec!["just renamed"],
+  });
+
+  fs::rename(root_2.join("just moved out"), root.join("moved back in"))?;
+
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![("moved back in", b"new content")],
+    modified: vec![],
+    removed: vec![],
+  });
+
   Ok(())
 }
 
