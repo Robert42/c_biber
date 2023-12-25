@@ -14,7 +14,7 @@ impl Cache
       let content = fs::read(&path)?;
       let path = path.to_owned();
 
-      self.add(path, content)?;
+      self.add(path, content);
     }
   
     Ok(())

@@ -30,7 +30,7 @@ impl Cache
     (cache, receiver)
   }
 
-  pub fn add<P: AsRef<Path>, B: Into<Vec<u8>>>(&mut self, path: P, content: B) -> Result
+  pub fn add<P: AsRef<Path>, B: Into<Vec<u8>>>(&mut self, path: P, content: B)
   {
     let content = content.into();
     let new_hash = blake3::hash(content.as_slice());
@@ -51,7 +51,6 @@ impl Cache
       self.files.insert(path.clone(), new_hash);
       let _ = self.sender.send(Event::ADD(path, content));
     }
-    Ok(())
   }
 
   pub fn full_scan<F>(&mut self, scan: F) -> Result
