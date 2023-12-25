@@ -103,11 +103,9 @@ fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_f
       Modify(notify::event::ModifyKind::Name(notify::event::RenameMode::Both)) =>
       {
         let mut paths = event.paths.into_iter();
-        while let (Some(from), Some(to)) = (paths.next(), paths.next())
+        while let (Some(from), Some(to)) = {let from = paths.next();let to = paths.next(); (from, to)}
         {
-          cache.remove(from);
-          let content = fs::read(&to)?;
-          cache.add(to, content);
+          cache.rename(from, to);
         }
       }
       Create(_) | Modify(_) | Remove(_) | Access(_) | Any | Other => (),
