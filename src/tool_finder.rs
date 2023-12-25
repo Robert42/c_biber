@@ -12,13 +12,13 @@ use Compiler::*;
 
 impl Compiler
 {
-  pub fn command(self) -> std::process::Command
+  pub fn command(self) -> process::Command
   {
     match self
     {
-      GCC => std::process::Command::new("gcc"),
-      CLANG => std::process::Command::new("clang"),
-      ZIG_CC => {let mut c = std::process::Command::new("zig"); c.arg("cc"); c}
+      GCC => process::Command::new("gcc"),
+      CLANG => process::Command::new("clang"),
+      ZIG_CC => {let mut c = process::Command::new("zig"); c.arg("cc"); c}
     }
   }
 }
