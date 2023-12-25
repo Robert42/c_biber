@@ -20,6 +20,7 @@ fn handle_notifications() -> Result
 
   let watcher = watch(root, is_c_file)?;
   
+  // init
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
     added: vec![
@@ -31,6 +32,7 @@ fn handle_notifications() -> Result
     removed: vec![],
   });
   
+  // Add files
   fs::write(root.join("newly_added.c"), b"new content")?;
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
@@ -41,6 +43,7 @@ fn handle_notifications() -> Result
     removed: vec![],
   });
 
+  // Modify files
   fs::write(root.join("to be modified.c"), b"modified content")?;
   std::thread::sleep(Duration::from_millis(2));
 
@@ -53,6 +56,7 @@ fn handle_notifications() -> Result
     removed: vec![],
   });
 
+  // Remove files
   fs::remove_file(root.join("to be removed.c"))?;
 
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
@@ -64,6 +68,7 @@ fn handle_notifications() -> Result
     ],
   });
 
+  // Rename files
   fs::rename(root.join("newly_added.c"), root.join("just renamed.c"))?;
 
   std::thread::sleep(Duration::from_millis(2)); // TODO: is there a better way
@@ -74,6 +79,7 @@ fn handle_notifications() -> Result
     removed: vec!["newly_added.c"],
   });
 
+  // Move files out of the watched dir
   let second_tmp_dir = TempDir::new("second_tmp_dir").unwrap();
   let root_2 = second_tmp_dir.path();
   fs::rename(root.join("just renamed.c"), root_2.join("just moved out.c"))?;
@@ -85,11 +91,53 @@ fn handle_notifications() -> Result
     removed: vec!["just renamed.c"],
   });
 
+  // Move files into the watched dir
   fs::rename(root_2.join("just moved out.c"), root.join("moved back in.c"))?;
 
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
     added: vec![("moved back in.c", b"new content")],
+    modified: vec![],
+    removed: vec![],
+  });
+  
+  // Ignore files that aren't c files
+  fs::write(root.join("to be ignored"), b"still ignored")?;
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![],
+    modified: vec![],
+    removed: vec![],
+  });
+
+  fs::rename(root.join("to be ignored"), root.join("still to be ignored"))?;
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![],
+    modified: vec![],
+    removed: vec![],
+  });
+
+  fs::rename(root.join("still to be ignored"), root_2.join("OUTSIDE"))?;
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![],
+    modified: vec![],
+    removed: vec![],
+  });
+
+  fs::rename(root_2.join("OUTSIDE"), root.join("still to be ignored"))?;
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![],
+    modified: vec![],
+    removed: vec![],
+  });
+
+  fs::remove_file(root.join("still to be ignored"))?;
+  let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
+  assert_eq!(updates, Updates{
+    added: vec![],
     modified: vec![],
     removed: vec![],
   });

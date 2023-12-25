@@ -93,6 +93,7 @@ fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_f
       =>
         for p in event.paths.into_iter()
         {
+          if !file_filter(&p).unwrap_or(false) {continue}
           let content = fs::read(&p)?;
           cache.add(p, content);
         },
@@ -101,6 +102,7 @@ fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_f
       =>
         for p in event.paths.into_iter()
         {
+          // No need to check with file_filter as ignored paths were never added to the cache
           cache.remove(p);
         },
       Create(_) | Modify(_) | Remove(_) | Access(_) | Any | Other => (),
