@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-pub mod tool_finder;
+pub mod compiler;
 
 pub mod watcher;
 pub use watcher::{watch, Watch_Event};
