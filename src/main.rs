@@ -5,7 +5,7 @@ fn main() -> c_biber::Result
   let curr_dir = std::env::current_dir()?;
   let watcher = c_biber::watch(curr_dir, |p| Some(p.extension()?=="c"))?;
 
-  dbg!(c_biber::tool_finder::find_compiler());
+  dbg!(c_biber::tool_finder::find_compiler()?);
 
   for event in watcher.watch()
   {

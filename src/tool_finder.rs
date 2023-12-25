@@ -1,19 +1,40 @@
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Compiler
 {
-  GCC(PathBuf),
+  GCC,
 }
 
-pub fn find_compiler() -> Result<Option<Compiler>>
+use Compiler::*;
+
+impl Compiler
 {
-  if let Ok(output) = std::process::Command::new("gcc").arg("--version").output()
+  pub fn path(self) -> &'static Path
   {
-    if output.status.success()
+    match self
     {
-      return Ok(Some(Compiler::GCC(PathBuf::from("gcc"))));
+      GCC => Path::new("gcc"),
     }
   }
-  Ok(None)
+}
+
+pub fn find_compiler() -> Result<Vec<Compiler>>
+{
+  use Compiler::*;
+
+  let mut compilers = vec![];
+  for (compiler, arg) in [
+    (GCC, "--version"),
+  ]
+  {
+    if let Ok(output) = std::process::Command::new(compiler.path()).arg(arg).output()
+    {
+      if output.status.success()
+      {
+        compilers.push(compiler);
+      }
+    }
+  }
+  Ok(compilers)
 }
