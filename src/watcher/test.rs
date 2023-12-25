@@ -66,7 +66,7 @@ fn handle_notifications() -> Result
 
   fs::rename(root.join("newly_added"), root.join("just renamed"))?;
 
-  std::thread::sleep(Duration::from_millis(2));
+  std::thread::sleep(Duration::from_millis(2)); // TODO: is there a better way
   let updates = Updates::new(root, watcher.poll_timeout(Duration::from_millis(2)))?;
   assert_eq!(updates, Updates{
     added: vec![("just renamed", b"new content")],
