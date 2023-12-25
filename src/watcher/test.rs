@@ -157,6 +157,7 @@ impl Updates
         ADD(path, content) => updates.added.push((leak_path(path), content.leak())),
         MODIFIED(path, content) => updates.modified.push((leak_path(path), content.leak())),
         REMOVE(path) => updates.removed.push(leak_path(path)),
+        RENAME(..) => todo!(),
       };
     }
 

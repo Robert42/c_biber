@@ -35,6 +35,24 @@ fn test_receive_updates()
 
   assert_eq!(receiver.try_recv(), Ok(Event::REMOVE(Arc::from(Path::new("a")))));
   assert!(receiver.try_recv().is_err());
+
+  // not part of the cache anymore
+  cache.remove(Path::new("a"));
+  assert!(receiver.try_recv().is_err());
+
+  // Test renaming
+  cache.rename(Path::new("b"), Path::new("c"));
+
+  assert_eq!(receiver.try_recv(), Ok(Event::RENAME(Arc::from(Path::new("b")), Arc::from(Path::new("c")))));
+  assert!(receiver.try_recv().is_err());
+
+  // not part of the cache anymore
+  cache.remove(Path::new("b"));
+  assert!(receiver.try_recv().is_err());
+
+  // the new file still has the old hashsum
+  cache.add(Path::new("c"), vec![]);
+  assert!(receiver.try_recv().is_err());
 }
 
 #[test]

@@ -13,6 +13,7 @@ pub enum Event
   ADD(Arc<Path>, Vec<u8>),
   MODIFIED(Arc<Path>, Vec<u8>),
   REMOVE(Arc<Path>),
+  RENAME(Arc<Path>, Arc<Path>),
 }
 
 impl Cache
@@ -59,6 +60,17 @@ impl Cache
     if let Some((path, _)) = self.files.remove_entry(path)
     {
       let _ = self.sender.send(Event::REMOVE(path));
+    }
+  }
+
+  pub fn rename<P1: AsRef<Path>, P2: AsRef<Path>>(&mut self, from: P1, to: P2)
+  {
+    let from = from.as_ref();
+    if let Some((from, hashsum)) = self.files.remove_entry(from)
+    {
+      let to = Arc::<Path>::from(to.as_ref());
+      self.files.insert(to.clone(), hashsum);
+      let _ = self.sender.send(Event::RENAME(from, to));
     }
   }
 

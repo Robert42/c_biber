@@ -15,6 +15,7 @@ fn main() -> c_biber::Result
       MODIFIED(..) => "MODIFIED",
       ADD(..) => "ADD",
       REMOVE(..) => "REMOVE",
+      RENAME(..) => "REMOVE",
     };
     match event
     {
@@ -24,6 +25,7 @@ fn main() -> c_biber::Result
           std::str::from_utf8(content.as_slice()).unwrap().lines().take(3).collect::<Vec<_>>().join("\n")
         ),
       REMOVE(path) => println!("== {label} {} ==", path.display()),
+      RENAME(from, to) => println!("== {label} {} {} ==", from.display(), to.display()),
     }
   }
 
