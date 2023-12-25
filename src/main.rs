@@ -15,7 +15,7 @@ fn main() -> c_biber::Result
       MODIFIED(..) => "MODIFIED",
       ADD(..) => "ADD",
       REMOVE(..) => "REMOVE",
-      RENAME(..) => "REMOVE",
+      RENAME(..) => "RENAME",
     };
     match event
     {
