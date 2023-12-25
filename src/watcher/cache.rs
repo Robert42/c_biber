@@ -30,7 +30,7 @@ impl Cache
     (cache, receiver)
   }
 
-  pub fn add<P: AsRef<Path>, B: Into<Vec<u8>>>(&mut self, path: P, content: B) -> Result
+  pub fn add<P: AsRef<Path>, B: Into<Vec<u8>>>(&mut self, path: P, content: B)
   {
     let content = content.into();
     let new_hash = blake3::hash(content.as_slice());
@@ -42,6 +42,7 @@ impl Cache
     {
       if old_hash != new_hash
       {
+        self.files.insert(path.clone(), new_hash);
         let _ = self.sender.send(Event::MODIFIED(path, content));
       }
     }
@@ -50,12 +51,15 @@ impl Cache
       self.files.insert(path.clone(), new_hash);
       let _ = self.sender.send(Event::ADD(path, content));
     }
-    Ok(())
   }
 
-  pub fn iter(&self) -> impl Iterator<Item=&Arc<Path>>
+  pub fn remove<P: AsRef<Path>>(&mut self, path: P)
   {
-    self.files.keys()
+    let path = path.as_ref();
+    if let Some((path, _)) = self.files.remove_entry(path)
+    {
+      let _ = self.sender.send(Event::REMOVE(path));
+    }
   }
 
   pub fn full_scan<F>(&mut self, scan: F) -> Result

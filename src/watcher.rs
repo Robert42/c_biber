@@ -5,35 +5,132 @@ pub mod scan;
 
 pub use cache::Cache;
 
-pub struct Watcher<F>
+pub enum Watch_Event
 {
-  filter: F,
-  path: PathBuf,
-  cache: Cache,
+  CACHE_UPDATED(cache::Event),
+  FAILURE(crate::Error),
+  FIRST_SCAN_FINISHED,
 }
 
-impl<F> Watcher<F>
+pub struct Watcher(mpsc::Receiver<Watch_Event>);
+
+impl Watcher
 {
-  pub fn cache(&self) -> &Cache
+  pub fn only_first_scan(self) -> impl Iterator<Item=Result<cache::Event>>
   {
-    &self.cache
+    use Watch_Event::*;
+    let i = self.0.into_iter()
+      .take_while(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} );
+    convert_iterator(i)
+  }
+
+  pub fn watch(self) -> impl Iterator<Item=Result<cache::Event>>
+  {
+    convert_iterator(self.0.into_iter())
+  }
+
+  pub fn poll_timeout(&self, timeout: Duration) -> impl Iterator<Item = Result<cache::Event>> + '_
+  {
+    let i = self.0.recv_timeout(timeout).ok().into_iter().chain(self.0.try_iter());
+    convert_iterator(i)
   }
 }
 
-impl<F> Watcher<F>
-  where
-    F: Fn(&Path)->Option<bool>
+pub fn watch<P, F>(path: P, file_filter: F) -> Result<Watcher>
+where
+  P: AsRef<Path>,
+  F: Fn(&Path)->Option<bool> + 'static + std::marker::Send,
 {
-  pub fn new<P: AsRef<Path>>(path: P, file_filter: F) -> Self
+  let (mut watch_sender, watch_receiver) = mpsc::channel();
+
+  let path : PathBuf = path.as_ref().to_owned();
+
+  std::thread::spawn(move ||
+    match _watch(path, &mut watch_sender, &file_filter)
+    {
+      Ok(_) => (),
+      Err(e) => { let _ = watch_sender.send(Watch_Event::FAILURE(e)); },
+    }
+  );
+  Ok(Watcher(watch_receiver))
+}
+
+fn _watch<F>(path: PathBuf, watch_sender: &mut mpsc::Sender<Watch_Event>, file_filter: &F) -> Result
+  where F: Fn(&Path)->Option<bool>,
+{
+  let (mut cache, cache_update_receiver) = Cache::new();
+  let (fs_notify_sender, fs_notify_receiver) = mpsc::channel();
+
+  let mut fs_notify = notify::RecommendedWatcher::new(fs_notify_sender, notify::Config::default())?;
+
+  fs_notify.watch(&path, notify::RecursiveMode::Recursive)?;
+  cache.scan_files(&path, file_filter)?;
+
+  while let Ok(e) = cache_update_receiver.try_recv()
   {
-    let (cache, _) = Cache::new();
-    Watcher{
-      filter: file_filter,
-      path: path.as_ref().to_owned(),
-      cache,
+    watch_sender.send(Watch_Event::CACHE_UPDATED(e))?;
+  }
+
+  // Always send signal that the first scan succeeded
+  watch_sender.send(Watch_Event::FIRST_SCAN_FINISHED)?;
+
+  loop
+  {
+    use notify::EventKind::*;
+    let event = fs_notify_receiver.recv()??;
+    if event.need_rescan()
+    {
+      cache.full_scan(|cache| cache.scan_files(&path, file_filter))?;
+      continue;
+    }
+    match event.kind
+    {
+      Create(notify::event::CreateKind::File)
+      | Modify(notify::event::ModifyKind::Data(notify::event::DataChange::Any))
+      | Modify(notify::event::ModifyKind::Data(notify::event::DataChange::Content))
+      | Modify(notify::event::ModifyKind::Name(notify::event::RenameMode::To))
+      | Access(notify::event::AccessKind::Close(notify::event::AccessMode::Write))
+      =>
+        for p in event.paths.into_iter()
+        {
+          if !file_filter(&p).unwrap_or(false) {continue}
+          let content = fs::read(&p)?;
+          cache.add(p, content);
+        },
+        Remove(notify::event::RemoveKind::File)
+        | Modify(notify::event::ModifyKind::Name(notify::event::RenameMode::From))
+      =>
+        for p in event.paths.into_iter()
+        {
+          // No need to check with file_filter as ignored paths were never added to the cache
+          cache.remove(p);
+        },
+      Create(_) | Modify(_) | Remove(_) | Access(_) | Any | Other => (),
+    }
+
+    while let Ok(e) = cache_update_receiver.try_recv()
+    {
+      watch_sender.send(Watch_Event::CACHE_UPDATED(e))?;
     }
   }
 }
 
 #[cfg(test)]
 mod test;
+
+use crate::notify::Watcher as Notify_Watcher;
+
+fn convert_iterator<I: IntoIterator<Item=Watch_Event>>(i: I) -> impl Iterator<Item=Result<cache::Event>>
+{
+  use Watch_Event::*;
+  i.into_iter().filter(|x| match x { FIRST_SCAN_FINISHED => false, _ => true} )
+    .map(
+    |x|
+    match x
+    {
+      CACHE_UPDATED(update) => Ok(update),
+      FAILURE(e) => Err(e),
+      FIRST_SCAN_FINISHED => unreachable!(),
+    }
+  )
+}
