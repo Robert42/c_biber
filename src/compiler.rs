@@ -50,7 +50,12 @@ pub fn find_compiler<Cs: IntoIterator<Item=Compiler>>(candidates: Cs) -> Result<
   let mut compilers = vec![];
   for compiler in candidates
   {
-    if let Ok(output) = compiler.cmd().arg(compiler.get_version).output()
+    if let Ok(output) = compiler.cmd()
+      .arg(compiler.get_version)
+      .stdin(process::Stdio::null())
+      .stdout(process::Stdio::null())
+      .stderr(process::Stdio::null())
+      .output()
     {
       if output.status.success()
       {
