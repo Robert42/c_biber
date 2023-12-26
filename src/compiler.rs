@@ -47,17 +47,26 @@ pub fn find_c_compiler() -> Result<Vec<Compiler>>
 
 pub fn find_compiler<Cs: IntoIterator<Item=Compiler>>(candidates: Cs) -> Result<Vec<Compiler>>
 {
-  let mut compilers = vec![];
+  let mut subprocesses = vec![];
   for compiler in candidates
   {
-    if let Ok(output) = compiler.cmd()
+    if let Ok(child) = compiler.cmd()
       .arg(compiler.get_version)
       .stdin(process::Stdio::null())
       .stdout(process::Stdio::null())
       .stderr(process::Stdio::null())
-      .output()
+      .spawn()
     {
-      if output.status.success()
+      subprocesses.push((compiler, child));
+    }
+  }
+
+  let mut compilers = vec![];
+  for (compiler, mut child) in subprocesses.into_iter()
+  {
+    if let Ok(status) = child.wait()
+    {
+      if status.success()
       {
         compilers.push(compiler);
       }
