@@ -31,12 +31,12 @@ pub mod cc
   pub const CLANG : Compiler = Compiler
   {
     cmd: &["clang"],
-    get_version: "--version",
+    .. GCC
   };
   pub const ZIG_CC : Compiler = Compiler
   {
     cmd: &["zig", "cc"],
-    get_version: "--version",
+    .. CLANG
   };
 }
 
