@@ -1,40 +1,56 @@
 use super::*;
 
-#[derive(Clone, Copy, Debug)]
-pub enum Compiler
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Compiler
 {
-  GCC,
-  CLANG,
-  ZIG_CC,
+  pub cmd: &'static [&'static str],
+  pub get_version: &'static str,
 }
-
-use Compiler::*;
 
 impl Compiler
 {
-  pub fn command(self) -> process::Command
+  pub fn cmd(&self) -> process::Command
   {
-    match self
-    {
-      GCC => process::Command::new("gcc"),
-      CLANG => process::Command::new("clang"),
-      ZIG_CC => {let mut c = process::Command::new("zig"); c.arg("cc"); c}
-    }
+    let mut cmd = process::Command::new(self.cmd[0]);
+    for arg in &self.cmd[1..] {cmd.arg(arg);}
+    cmd
   }
 }
 
-pub fn find_compiler() -> Result<Vec<Compiler>>
+pub mod cc
 {
-  use Compiler::*;
+  use super::*;
 
-  let mut compilers = vec![];
-  for (compiler, arg) in [
-    (GCC, "--version"),
-    (CLANG, "--version"),
-    (ZIG_CC, "--version"),
-  ]
+  pub const ALL : &'static [Compiler] = &[GCC, CLANG, ZIG_CC];
+
+  pub const GCC : Compiler = Compiler
   {
-    if let Ok(output) = compiler.command().arg(arg).output()
+    cmd: &["gcc"],
+    get_version: "--version",
+  };
+  pub const CLANG : Compiler = Compiler
+  {
+    cmd: &["clang"],
+    get_version: "--version",
+  };
+  pub const ZIG_CC : Compiler = Compiler
+  {
+    cmd: &["zig", "cc"],
+    get_version: "--version",
+  };
+}
+
+pub fn find_c_compiler() -> Result<Vec<Compiler>>
+{
+  return find_compiler(cc::ALL.iter().copied());
+}
+
+pub fn find_compiler<Cs: IntoIterator<Item=Compiler>>(candidates: Cs) -> Result<Vec<Compiler>>
+{
+  let mut compilers = vec![];
+  for compiler in candidates
+  {
+    if let Ok(output) = compiler.cmd().arg(compiler.get_version).output()
     {
       if output.status.success()
       {
