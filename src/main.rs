@@ -2,10 +2,10 @@ extern crate c_biber;
 
 fn main() -> c_biber::Result
 {
+  let compiler = c_biber::compiler::find_c_compiler()?;
+
   let curr_dir = std::env::current_dir()?;
   let watcher = c_biber::watch(curr_dir, |p| Some(p.extension()?=="c"))?;
-
-  dbg!(c_biber::compiler::find_c_compiler()?);
 
   for event in watcher.watch()
   {

@@ -15,7 +15,15 @@ impl Compiler
     for arg in &self.cmd[1..] {cmd.arg(arg);}
     cmd
   }
+
+  pub fn compile<P: AsRef<Path>>(&self, file: P) -> Result<Compilation>
+  {
+    let child_process = self.cmd().arg(file.as_ref()).spawn()?;
+    Ok(Compilation(child_process))
+  }
 }
+
+pub struct Compilation(process::Child);
 
 pub mod cc
 {
@@ -40,12 +48,12 @@ pub mod cc
   };
 }
 
-pub fn find_c_compiler() -> Result<Vec<Compiler>>
+pub fn find_c_compiler() -> Result<Compiler>
 {
   return find_compiler(cc::ALL.iter().copied());
 }
 
-pub fn find_compiler<Cs: IntoIterator<Item=Compiler>>(candidates: Cs) -> Result<Vec<Compiler>>
+pub fn find_compiler<Cs: IntoIterator<Item=Compiler>>(candidates: Cs) -> Result<Compiler>
 {
   let mut subprocesses = vec![];
   for compiler in candidates
@@ -61,16 +69,33 @@ pub fn find_compiler<Cs: IntoIterator<Item=Compiler>>(candidates: Cs) -> Result<
     }
   }
 
-  let mut compilers = vec![];
-  for (compiler, mut child) in subprocesses.into_iter()
+  let mut result = Err(crate::Error::NO_COMPILER_FOUND);
+  for (compiler, mut child) in subprocesses.into_iter().rev()
   {
     if let Ok(status) = child.wait()
     {
       if status.success()
       {
-        compilers.push(compiler);
+        result = Ok(compiler);
       }
     }
   }
-  Ok(compilers)
+  return result;
+}
+
+impl Compilation
+{
+  pub fn join(mut self) -> Result
+  {
+    let status = self.0.wait()?;
+    if !status.success() { Err(Error::COMPILE_ERROR)?; } 
+    Ok(())
+  }
+}
+
+#[derive(Debug, Error)]
+pub enum Error
+{
+  #[error("compile error")]
+  COMPILE_ERROR
 }

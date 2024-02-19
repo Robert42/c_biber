@@ -33,6 +33,10 @@ pub enum Error
   CHANNEL_SEND_ERROR,
   #[error("notify-error: {0}")]
   NOTIFY_ERROR(#[from] notify::Error),
+  #[error("compile-error: {0}")]
+  COMPILE_ERROR(#[from] compiler::Error),
+  #[error("no compiler found")]
+  NO_COMPILER_FOUND,
 }
 
 impl From<mpsc::SendError<Watch_Event>> for Error
